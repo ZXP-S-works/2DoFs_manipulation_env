@@ -99,7 +99,7 @@ for i,xi in enumerate(x):
                     break
             v[i, j, k] = in_obs
 
-verts, faces, normals, values = measure.marching_cubes_lewiner(v, spacing=(x[1]-x[0], y[1]-y[0], (h[1]-h[0])*180/np.pi))
+verts, faces, normals, values = measure.marching_cubes(v, spacing=(x[1]-x[0], y[1]-y[0], (h[1]-h[0])*180/np.pi))
 ax_lims = [[0, x[-1]], [0, y[-1]], [0, h[-1]*180/np.pi]]
 
 fig = plt.figure(figsize=(10, 10))

@@ -170,15 +170,16 @@ class PlanningProblem(object):
 
     def __init__(self, world_file):
 
-        # Load world
-        with open(world_file, 'r') as fh:
-            world = yaml.safe_load(fh)
+        if world_file is not None:
+            # Load world
+            with open(world_file, 'r') as fh:
+                world = yaml.safe_load(fh)
 
-        self.workspace = workspace_builder(world['workspace'])
-        # Note that the robot type must be implemented in the robot_tools module, so the example robot:
-        #  {type: RobotArm2D, parameters: {base_position: [5.0, 5.0], link_lengths: [2.1, 2.1]}
-        # would call as constructor: robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
-        self.robot = robot_builder(world['robot'])
+            self.workspace = workspace_builder(world['workspace'])
+            # Note that the robot type must be implemented in the robot_tools module, so the example robot:
+            #  {type: RobotArm2D, parameters: {base_position: [5.0, 5.0], link_lengths: [2.1, 2.1]}
+            # would call as constructor: robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
+            self.robot = robot_builder(world['robot'])
 
 
     def construct_config_space(self, nx=101):
@@ -198,3 +199,49 @@ class PlanningProblem(object):
                 v[i, j] = in_obs
 
         return [theta1, theta2], v
+
+
+class RandomPlanningProblem(PlanningProblem):
+
+    def __init__(self, world_file):
+
+        # Load world
+        super().__init__(None)
+        xy_limits = 10.
+        num_obstacles = 5
+        obstacles = []
+        theta = np.random.uniform(3, 5, size=num_obstacles)
+        theta = theta / theta.sum()
+        theta[0] += np.random.uniform(0, 1)
+        theta = theta * 2 * np.pi
+        rs = np.random.uniform(3, 5, size=num_obstacles)
+        for i in range(1, num_obstacles):
+            theta[i] += theta[i - 1]
+            rs[i] += rs[i - 1]
+        rs -= rs[0]
+        rs /= rs[-1]
+        # rs in [0.5, 1]
+        rs = (rs + 1) / 2
+        rs *= xy_limits / 2
+        np.random.shuffle(rs)
+        for i in range(num_obstacles):
+            r_x = rs[i] * np.cos(theta[i])
+            r_y = rs[i] * np.sin(theta[i])
+            obstacke_r = rs[i] - 0.4 * xy_limits / 2
+            num_points = np.random.randint(4, 8)
+            obstacke_thetas = np.random.uniform(0, 2, size=num_points) * np.pi
+            obstacke_thetas = -np.sort(-obstacke_thetas)
+            obstacke_rs = np.random.uniform(0.3 * obstacke_r, obstacke_r, size=num_points)
+            p_ins = np.stack(((obstacke_rs * np.cos(obstacke_thetas)).reshape(-1),
+                              (obstacke_rs * np.sin(obstacke_thetas)).reshape(-1)), axis=1)
+            p_ins[:, 0] += r_x + xy_limits / 2
+            p_ins[:, 1] += r_y + xy_limits / 2
+            p_ins = p_ins.tolist()
+            obstacles.append({'type': 'Polygon', 'parameters': {'p_in': p_ins}})
+
+        self.workspace = Workspace2D(limits=[[0, xy_limits], [0, xy_limits]],
+                                     obstacles=obstacles)
+        # Note that the robot type must be implemented in the robot_tools module, so the example robot:
+        #  {type: RobotArm2D, parameters: {base_position: [5.0, 5.0], link_lengths: [2.1, 2.1]}
+        # would call as constructor: robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
+        self.robot = RobotArm2D([5.0, 5.0], [2.1, 2.1])

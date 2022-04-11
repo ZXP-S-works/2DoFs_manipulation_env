@@ -13,7 +13,7 @@ workspace:
       - type: Rectangle
         parameters:
           xlim: [2.3, 3.4]
-          ylim: [7, 9.8]
+          ylim: [5, 9.8]
 
       - type: Rectangle
         parameters:
@@ -30,6 +30,7 @@ workspace:
         parameters:
           p_in:
             - [5, 0.9]
+            - [6, 2]
             - [7.1, 0.9]
             - [7.1, 3.7]
             - [5, 3.7]
